@@ -1,11 +1,18 @@
-import time
 import tkinter as tk
-import tkinter.ttk as ttk
+import tkinter.ttk as ttk 
 from random import shuffle
 from tkinter import messagebox
+import pymysql as query
 
-from PIL import Image, ImageTk
+from PIL import ImageTk
+from dotenv import load_dotenv
+import os
 
+load_dotenv('conf.env')
+hostname: str = os.getenv('DB_HOST')
+username: str = os.getenv('DB_USER')
+password: str = os.getenv('DB_PASS')
+database: str = os.getenv('DB_NAME')
 
 class Quiz(tk.Tk):
     def __init__(self):
@@ -13,29 +20,32 @@ class Quiz(tk.Tk):
 
         self.title("FIRS PRACTICE QUIZ") #program window title
         self.attributes("-fullscreen", True) #set the definitions of root window
-        screen_height = self.winfo_screenheight()
-        screen_width = self.winfo_screenwidth()
-        # self.geometry("%dx%d+0+0" % (screen_width, screen_height))
-
+        # screen_height = self.winfo_screenheight()
+        # screen_width = self.winfo_screenwidth()
+        
         # root window icon
-        icon = ImageTk.PhotoImage(file = 'logo.jpg')
+        icon = ImageTk.PhotoImage(file = 'images\logo.png')
         self.iconphoto(False, icon)
         self.resizable(height=0, width=0)
+        
         self.protocol("WM_DELETE_WINDOW", lambda: 'break')
         self.tk_focusFollowsMouse()
+        self.create_widgets()
 
+        #images
+        
+        help_img = tk.PhotoImage(file = "images\help.png")
+        sub_img = tk.PhotoImage(file = "images\sub.png")
+        prev_img = tk.PhotoImage(file = "images\previous.png")
+        next_img = tk.PhotoImage(file = "images\\next.png")
+        ok_img = tk.PhotoImage(file = "images\ok.png")
+        exit_img = tk.PhotoImage(file = "images\exit.png")
+        
+    def create_widgets(self):
+        
         #variables to get user input on login screen, needs sql & internet to complete soon
         user_value = tk.StringVar()
         Pass_value = tk.StringVar()
-
-        #help image
-        help_img = tk.PhotoImage(file = "help.png")
-        sub_img = tk.PhotoImage(file = "sub.png")
-        prev_img = tk.PhotoImage(file = "previous.png")
-        next_img = tk.PhotoImage(file = "next.png")
-        ok_img = tk.PhotoImage(file = "ok.png")
-        exit_img = tk.PhotoImage(file = "exit.png")
-
 
         #displays instrructions fro how to use program
         instructions = str("The following are the instructions for this program:\n"
@@ -77,6 +87,7 @@ class Quiz(tk.Tk):
             'answer' : 'Jupiter'
             }
                     ]
+        
         output = [] # list to store values "WRONG" or "CORRECT" selfd on choice
         all = {} # saves all choices made and not (not made stored as 'nil')
         current_question = 0 # Create a variable to keep track of the current screen index
@@ -84,13 +95,17 @@ class Quiz(tk.Tk):
         dice = {} #dict to store user choices selfd on screen index as key and values as values
         opt = {} #stores selection to be shown when screen is changed
 
-        #is called when submit btn is clicked
-        def ask():
+        #is called when a session attempts to close
+        def ask(stop):
             global confirm
             confirm = messagebox.askokcancel('Closure', "Continution will end this session!!!", icon="info")
-            if confirm:
+
+            if confirm and stop:
                 stor()
                 try_close()
+
+            elif confirm and not stop:
+                self.destroy()
 
         # called immediately testing is to begin
         def commence():
@@ -180,13 +195,13 @@ class Quiz(tk.Tk):
             
             #create and grid buttonns
             
-            submit_btn = ttk.Button(tools, image=sub_img, 
-                                    command=ask)
+            submit_btn = ttk.Button(tools, image=self.sub_img, 
+                                    command = lambda : ask(True))
             submit_btn.grid(row = 0, column = 1, sticky='w', 
                             ipadx=30
                             )
             
-            help_btn = ttk.Button(tools, image=help_img, 
+            help_btn = ttk.Button(tools, image=self.help_img, 
                                 command= helping, 
                                 )
             help_btn.grid(row = 0, column = 0, sticky = 'w',
@@ -292,8 +307,8 @@ class Quiz(tk.Tk):
             choice_radiobuttons = [tk.Radiobutton(choice_frame,value=i, variable=v,command = lambda v = i: select_answer(v)) for i in range(3)]
 
             nav_frame = tk.Frame(holder)
-            previous_button = ttk.Button(nav_frame, image=prev_img, command=previous_question)
-            next_button = ttk.Button(nav_frame, image=next_img, command=next_question)
+            previous_button = ttk.Button(nav_frame, image=self.prev_img, command=previous_question)
+            next_button = ttk.Button(nav_frame, image=self.next_img, command=next_question)
             
             mini_bar = tk.Frame(holder)
             mini_bar_buttons = []
@@ -341,18 +356,18 @@ class Quiz(tk.Tk):
             
             #new frame for results screen      
             show_res = tk.Frame(self, bg='black')
-            show_res.pack(side=TOP, fill=BOTH, expand=True)
+            show_res.pack(side="top", fill="both", expand=True)
             
             #canvas for results screen
             show_canv = tk.Canvas(show_res, )
-            show_canv.pack(side=LEFT, fill=BOTH, expand=True)
+            show_canv.pack(side='left', fill='both', expand=True)
             
             #scrollbars inside canvas
             show_scroll_horiz = tk.Scrollbar(self, orient='horizontal', command=show_canv.xview)
-            show_scroll_horiz.pack(side=BOTTOM, fill=X)
+            show_scroll_horiz.pack(side='bottom', fill='x')
             
             show_scroll_vert = tk.Scrollbar(show_res, command=show_canv.yview)
-            show_scroll_vert.pack(side=RIGHT, fill=Y)
+            show_scroll_vert.pack(side='right', fill='y')
             
             #configure scrollbars for canvas
             show_canv.config(xscrollcommand=show_scroll_horiz.set,
@@ -376,7 +391,7 @@ class Quiz(tk.Tk):
             exit_frame = tk.Frame(result_frame, bg = 'black')
             others_frame = tk.Frame(result_frame, bg = 'black' )
             
-            exit_btn = ttk.Button(exit_frame,image=exit_img, command=self.destroy,
+            exit_btn = ttk.Button(exit_frame,image=self.exit_img, command=self.destroy,
                         )
             
             score_sheet = tk.Label(score_frame,text = "YOU SCORED: \n" +
@@ -458,18 +473,18 @@ class Quiz(tk.Tk):
             
             #new frame for results screen      
             corr_frame = tk.Frame(self, )
-            corr_frame.pack(side=TOP, fill=BOTH, expand=True)
+            corr_frame.pack(side='top', fill='both', expand=True)
             
             #canvas for results screen
             corr_canv = tk.Canvas(corr_frame, bg = 'light green')
-            corr_canv.pack(side=LEFT, fill=BOTH, expand=True)
+            corr_canv.pack(side='left', fill='both', expand=True)
             
             #scrollbars inside canvas
             corr_scroll_horiz = tk.Scrollbar(self, orient='horizontal', command=corr_canv.xview)
-            corr_scroll_horiz.pack(side=BOTTOM, fill=X)
+            corr_scroll_horiz.pack(side='bottom', fill='x')
             
             corr_scroll_vert = tk.Scrollbar(corr_frame, command=corr_canv.yview)
-            corr_scroll_vert.pack(side=RIGHT, fill=Y)
+            corr_scroll_vert.pack(side='right', fill='y')
             
             #configure scrollbars for canvas
             corr_canv.config(xscrollcommand=corr_scroll_horiz.set,
@@ -487,12 +502,12 @@ class Quiz(tk.Tk):
             #bind screen with function
             corr_frame.bind("<Configure>", change_corr)
             
-            new = Frame(cont_corr, bg = 'light green')
+            new = tk.Frame(cont_corr, bg = 'light green')
             
             correct_me = tk.Label(new, text=show_every, bg='light green', font = ("Comic sans ms", 15, 'bold'),
                             justify='left')
             
-            leave = ttk.Button(new, image=exit_img,  
+            leave = ttk.Button(new, image=self.exit_img,  
                             command = self.destroy)
             
             new.grid(row=0, column = 0, sticky='nswe', )
@@ -506,7 +521,7 @@ class Quiz(tk.Tk):
             dis = tk.Toplevel(holder)
             dis.title("Help")
             dis.geometry("1400x600")
-            dis.iconphoto(False, help_img)
+            dis.iconphoto(False, self.help_img)
             # dis.anchor('center')
             dis.resizable(height = 0, width = 0)
             dis.config(background= "cyan" )
@@ -516,7 +531,7 @@ class Quiz(tk.Tk):
             #should include icon image
             info = tk.Label(dis_frame,text = instructions, justify='left',
                         background = 'cyan', font = ("comic sans ms", 15, 'bold'))
-            help_end = ttk.Button(dis_frame, image=ok_img, command = dis.destroy,
+            help_end = ttk.Button(dis_frame, image=self.ok_img, command = dis.destroy,
                                 width=100)
 
             info.grid(row=0, column=0)
@@ -594,7 +609,7 @@ class Quiz(tk.Tk):
                                         foreground = "green",
                                         )
                     
-                    start = ttk.Button(new, text = 'START', command=commence, 
+                    start = ttk.Button(new, text = 'START', command = commence, 
                                     width=35, style = 'W.TButton')
                     start.grid(row=3, column=0)
 
@@ -603,168 +618,120 @@ class Quiz(tk.Tk):
             user = user_value.get()
             pass_w = Pass_value.get()
             
+            with query.connect(
+                host = hostname,
+                user = username,
+                password = password,
+                database = database
+            ) as db:
+                
+                curs = db.cursor()
+
+
+
             if user == 'Ozioma Ogu' and pass_w == '123456':
                 messagebox.showinfo('Login Successful', 'Welcome to the next stage!')
                 user_value.set('')
                 Pass_value.set('')
                 reset_window()
                 show_inst()
-            
-            elif user == "Ezeofor Jessica" and pass_w == '123456':
-                messagebox.showinfo('HI', "Welcome, sleeping beauty!!\nThis might annoy you a bit :)")
-                
-                screen1 = tk.Toplevel()
-                screen1.geometry("350x100")
-                screen1.title("Operation annoy ")
-                screen1.iconphoto(False, icon)
-                
-                def fine():
-                    for i in range(3):
-                        messagebox.askyesno('Hmm', "Are you sure? ")
-                    show = messagebox.showinfo('Hey', "I can't really know\ni'm just a program, \nbut i wish you a good day :)")
-                    show2 = messagebox.showinfo("advance", 'You may continue')
-                    user_value.set('')
-                    Pass_value.set('')
-                    reset_window()
-                    show_inst()   
-                
-                def not_fine():
-                    messagebox.showinfo('Joy', "Well, if it helps, anytime u feel that way\n imagine Lifechanger vibing to amapiano :)")
-                    messagebox.showinfo('Joy', "I wish you a good laugh and a cure to whatever ur feeling :)")
-                    messagebox.showinfo("advance", 'You may continue')
-                    user_value.set('')
-                    Pass_value.set('')
-                    reset_window()
-                    show_inst()   
-            
-                screen1.config(bg='brown')
-                label = tk.Label(screen1, text = "How are you?", anchor='center', bg='brown')
-                y = tk.Button(screen1, text='Fine', command=fine, fg='blue')
-                
-                n = tk.Button(screen1, text='Sad/Bored', command=not_fine, fg='blue')
-                label.grid(row=0, column=0, sticky='w')
-                y.grid(row=1, column = 0, sticky='e', padx = 50)
-                n.grid(row=1, column = 1, sticky='e', padx = 50)
-                
-                screen1.mainloop()
-            
+                                    
             else:
                 messagebox.showerror("Incorrect Login Details", 'Try Again')
                 user_value.set('')
                 Pass_value.set('')
-
-        #bypass for editiing inner code, may be changed to admin privy's
-        def bypass():
-            answer = messagebox.askokcancel('Confirm Bypass', 
-                                            "By choosing you agree that Chibuike is the Best!!!",
-                                            icon = 'info')
-            if answer:
-                messagebox.showinfo('Login Successful', "I'm glad we think alike!!!\n" + 'Welcome to the next stage!')
-                user_value.set('')
-                Pass_value.set('')
-                reset_window()
-                show_inst()   
-            else :
-                messagebox.showinfo('Access Denied', 'Enter the correct login info then!')
-                user_value.set('')
-                Pass_value.set('')
-
-        if __name__ == '__main__':
-            container = tk.Frame(self, bg='violet')
-            container.pack(side='top',fill="both", expand=True)
-
-            #canvas for scrollbar
-            canvase = tk.Canvas(container, bg='violet')
-            canvase.pack(side='left', fill='both', expand=True)
-            #scrollbar for login page
-            login_scroll_horiz = tk.Scrollbar(canvase, orient='horizontal',command=canvase.xview,
-                                        )
-            login_scroll_horiz.pack(side='bottom', fill='x')
-
-            login_scroll_vert = tk.Scrollbar(container, command=canvase.yview)
-            login_scroll_vert.pack(side='right', fill='y')
-
-            #configure canvaas with horizontal scroll
-            canvase.config(xscrollcommand=login_scroll_horiz.set,
-                        yscrollcommand=login_scroll_vert.set) 
-
-            #login page frame bg and declaration
-            cont_within_self = tk.Frame(canvase, bg='violet')
-            #create window
-            canvase.create_window((0,0), window = cont_within_self, 
-                                anchor='nw', 
-                                )
-
-
-            #login section, nested in master frame above
-            header = tk.Frame(cont_within_self, background='purple')
-            header.grid(row=0, column=0,)
-
-            login_page = tk.Label(header, background='purple', foreground='white',
-                            text='PLEASE ENTER YOUR LOGIN DETAILS TO PROCEED TO THE NEXT STAGE',
-                            font=('Times New Roman',20, 'bold'),
-                            justify='center', height=5)
-
-            login_page.grid(row=0, column=0, ipadx=295)
-
-            frame = tk.Frame(cont_within_self, bg='violet')
-            frame.grid(row=1, column=0, sticky='w')
-
-            #entry segments for credentials
-            username = tk.Label(frame, text='Username:', foreground='red',
-                            font=('calibri', 30, 'normal'), background='violet')
-
-            password = tk.Label(frame, text = 'Password:', foreground='red',
-                            font=('Calibri', 30, 'normal'), background='violet')
-
-            # username.pack()
-            username.grid(row=1, column=0, sticky='w')
-            password.grid(row=2, column=0, sticky='w')
-
-            user_entry = tk.Entry(frame, textvariable=user_value,
-                            font=('Comic Sans', 15), width=50, 
-                            )
-            
-            user_entry.focus_force()
-            
-            pass_entry = tk.Entry(frame, textvariable=Pass_value,
-                            show='*', font=('Comic Sans', 15), width=50
-                            )
-
-            user_entry.grid(row=1, column=1, sticky='w', padx=50)
-            user_entry.focus_force() #once code runs gives focus to it
-            pass_entry.grid(row=2, column=1, sticky='w', padx=50)
-
-            #buttons for taking decisions at login screen
-            sub_btn = ttk.Button(frame, text = 'Login', 
-                            command = get_input)
-
-            by_btn = ttk.Button(frame, text='Bypass',
-                            command = bypass)
-
-            end = ttk.Button(frame, text = "END",
-                        command = lambda: self.destroy())
-
-
-            sub_btn.grid(row=3, column=2, sticky='w', padx=10, pady=10)
-            by_btn.grid(row=3, column=3, sticky='w', padx=10, pady=10)
-            end.grid(row=3, column=4, sticky='w', padx=10, pady=10)
-
-            def change(event):
-                if canvase.winfo_exists():
-                    canvase.configure(scrollregion=canvase.bbox('all'))
                 
-            cont_within_self.bind("<Configure>", change)
+        container = tk.Frame(self, bg='violet')
+        container.pack(side='top',fill="both", expand=True)
+
+        #canvas for scrollbar
+        canvase = tk.Canvas(container, bg='violet')
+        canvase.pack(side='left', fill='both', expand=True)
+        #scrollbar for login page
+        login_scroll_horiz = tk.Scrollbar(canvase, orient='horizontal',command=canvase.xview,
+                                    )
+        login_scroll_horiz.pack(side='bottom', fill='x')
+
+        login_scroll_vert = tk.Scrollbar(container, command=canvase.yview)
+        login_scroll_vert.pack(side='right', fill='y')
+
+        #configure canvaas with horizontal scroll
+        canvase.config(xscrollcommand=login_scroll_horiz.set,
+                    yscrollcommand=login_scroll_vert.set) 
+
+        #login page frame bg and declaration
+        cont_within_self = tk.Frame(canvase, bg='violet')
+        #create window
+        canvase.create_window((0,0), window = cont_within_self, 
+                            anchor='nw', 
+                            )
 
 
-        # timer  still not working
-        # automatically adjust deselct radiobutton selfd on number of questions
-        # questions in im formats
-        # maybe questions in vid formats
-        # speech to questions reading(when typed)
-        # databse capabilites
-        # when questions in txt fromat, check if answer in choices
-        # One admin will have priiledges
+        #login section, nested in master frame above
+        header = tk.Frame(cont_within_self, background='purple')
+        header.grid(row=0, column=0,)
+
+        login_page = tk.Label(header, background='purple', foreground='white',
+                        text='PLEASE ENTER YOUR LOGIN DETAILS TO PROCEED',
+                        font=('Times New Roman',20, 'bold'),
+                        justify='center', height=5)
+
+        login_page.grid(row=0, column=0, ipadx=295)
+
+        frame = tk.Frame(cont_within_self, bg='violet')
+        frame.grid(row=1, column=0, sticky='w')
+
+        #entry segments for credentials
+        username = tk.Label(frame, text='Reg. No:', foreground='red',
+                        font=('calibri', 30, 'normal'), background='violet')
+
+        password = tk.Label(frame, text = 'Password:', foreground='red',
+                        font=('Calibri', 30, 'normal'), background='violet')
+
+        # username.pack()
+        username.grid(row=1, column=0, sticky='w')
+        password.grid(row=2, column=0, sticky='w')
+
+        user_entry = tk.Entry(frame, textvariable=user_value,
+                        font=('Comic Sans', 15), width=50, 
+                        )
+        
+        user_entry.focus_force()
+        
+        pass_entry = tk.Entry(frame, textvariable=Pass_value,
+                        show='*', font=('Comic Sans', 15), width=50
+                        )
+
+        user_entry.grid(row=1, column=1, sticky='w', padx=50)
+        user_entry.focus_force() #once code runs gives focus to it
+        pass_entry.grid(row=2, column=1, sticky='w', padx=50)
+
+        #buttons for taking decisions at login screen
+        sub_btn = ttk.Button(frame, text = 'Login', 
+                        command = get_input)
+        
+        end = ttk.Button(frame, text = "END",
+                    command = lambda : ask(False) )
+
+
+        sub_btn.grid(row=3, column=2, sticky='w', padx=10, pady=10)
+        end.grid(row=3, column=4, sticky='w', padx=10, pady=10)
+
+        def change(event):
+            if canvase.winfo_exists():
+                canvase.configure(scrollregion=canvase.bbox('all'))
+            
+        cont_within_self.bind("<Configure>", change)
+
+
+    # timer  still not working
+    # automatically adjust deselct radiobutton selfd on number of questions
+    # questions in im formats
+    # maybe questions in vid formats
+    # speech to questions reading(when typed)
+    # databse capabilites
+    # when questions in txt fromat, check if answer in choices
+    # One admin will have priiledges
         
         
 if __name__ == '__main__':
